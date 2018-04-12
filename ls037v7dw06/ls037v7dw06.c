@@ -46,6 +46,7 @@ struct panel_ls037v7dw06 {
 
 	struct gpio_desc *resb_gpio;
 	struct gpio_desc *clk_gpio;
+	struct gpio_desc *i2ciso_gpio;
 	struct backlight_device *backlight;
 };
 
@@ -59,6 +60,8 @@ static int sharp_ls_enable(struct panel_ls037v7dw06 *panel)
 	int retval;
 	// Start by setting RESB to low.
 	gpiod_set_value_cansleep(panel->resb_gpio, 0);
+
+	gpiod_set_value_cansleep(panel->i2ciso_gpio, 0);
 
 	// Enable VDD.
 	retval = regulator_enable(panel->supply);
@@ -193,6 +196,14 @@ static int sharp_ls_probe(struct i2c_client *client,
 	                                 GPIOD_OUT_LOW);
 	if (IS_ERR(panel->clk_gpio)) {
 		err = PTR_ERR(panel->clk_gpio);
+		dev_err(&client->dev, "failed to request GPIO: %d\n", err);
+		return err;
+	}
+
+	panel->i2ciso_gpio = devm_gpiod_get(&client->dev, "i2c-iso",
+	                                 GPIOD_OUT_LOW);
+	if (IS_ERR(panel->i2ciso_gpio)) {
+		err = PTR_ERR(panel->i2ciso_gpio);
 		dev_err(&client->dev, "failed to request GPIO: %d\n", err);
 		return err;
 	}
